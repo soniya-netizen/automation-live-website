@@ -167,7 +167,9 @@ const Contact = () => {
         const form = e.target;
         const data = new FormData(form);
 
-        // IMPORTANT: Replace with your actual Web3Forms Access Key
+        // ===================================================================
+        // PASTE YOUR WEB3FORMS KEY HERE vvv
+        // ===================================================================
         data.append("access_key", "YOUR_ACCESS_KEY_HERE");
         data.append("from_name", "AutomationLive Website");
         data.append("subject", "New Contact Form Submission");
@@ -250,3 +252,94 @@ const BookingModal = ({ isOpen, onClose }) => {
         setSelectedTime(null);
         setDetails({ name: '', email: '' });
         setStep('booking');
+    }, []);
+
+    useEffect(() => {
+        if (!isOpen) {
+            const timer = setTimeout(resetForm, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen, resetForm]);
+
+    const handleConfirm = () => {
+        setStep('confirmation');
+    };
+    
+    const generateGoogleCalendarLink = () => {
+        if (!selectedDate || !selectedTime || !details.email) return '#';
+
+        const [time, modifier] = selectedTime.split(' ');
+        let [hours, minutes] = time.split(':');
+        if (hours === '12') hours = '00';
+        if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+
+        const startDate = new Date(selectedDate);
+        startDate.setHours(parseInt(hours), parseInt(minutes));
+        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+        const toGoogleDate = (date) => date.toISOString().replace(/[-:.]/g, '').slice(0, -3) + 'Z';
+
+        const url = new URL('https://www.google.com/calendar/render');
+        url.searchParams.append('action', 'TEMPLATE');
+        url.searchParams.append('text', `Consultation: AutomationLive with ${details.name}`);
+        url.searchParams.append('dates', `${toGoogleDate(startDate)}/${toGoogleDate(endDate)}`);
+        url.searchParams.append('details', `Discussing automation solutions for ${details.name}.\n\nClient Email: ${details.email}`);
+        url.searchParams.append('location', 'Google Meet');
+        url.searchParams.append('add', details.email);
+
+        return url.href;
+    };
+
+    const renderCalendar = () => { const month = currentDate.getMonth(), year = currentDate.getFullYear(), daysInMonth = new Date(year, month + 1, 0).getDate(), firstDay = new Date(year, month, 1).getDay(); const today = new Date(); today.setHours(0,0,0,0); let days = Array(firstDay).fill(null).map((_,i)=><div key={`e-${i}`}></div>); for (let d = 1; d <= daysInMonth; d++) { const date = new Date(year, month, d); const isDisabled = date < today || date.getDay() === 0 || date.getDay() === 6; days.push(<button key={d} disabled={isDisabled} onClick={() => { setSelectedDate(date); setSelectedTime(null); }} className={cx('calendar-day p-2 hover:bg-blue-100 rounded-full', isDisabled&&'disabled', selectedDate?.getTime()===date.getTime()&&'selected')}>{d}</button>); } return days; };
+    
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl transform scale-100" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center p-6 border-b"><h3 className="text-2xl font-bold">Book Your Consultation</h3><button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-3xl">&times;</button></div>
+                {step === 'booking' ? (<>
+                    <div className="p-6 md:p-8 grid md:grid-cols-2 gap-8">
+                        <div><h4 className="text-lg font-semibold mb-4">1. Select a Date</h4><div className="flex items-center justify-between mb-4"><button onClick={()=>setCurrentDate(d=>new Date(d.setMonth(d.getMonth()-1)))} className="p-2 rounded-full hover:bg-gray-100"><Icon name="chevron-left" /></button><h3 className="font-semibold text-lg">{currentDate.toLocaleString('default',{month:'long',year:'numeric'})}</h3><button onClick={()=>setCurrentDate(d=>new Date(d.setMonth(d.getMonth()+1)))} className="p-2 rounded-full hover:bg-gray-100"><Icon name="chevron-right" /></button></div><div className="grid grid-cols-7 gap-1 text-center font-semibold text-sm text-gray-500">{['S','M','T','W','T','F','S'].map(d=><div key={d}>{d}</div>)}</div><div className="grid grid-cols-7 gap-2 text-center mt-2">{renderCalendar()}</div></div>
+                        <div className={cx(!selectedDate && 'opacity-0')}><h4 className="text-lg font-semibold mb-4">2. Select a Time</h4><div className="grid grid-cols-3 gap-3 mb-6">{['09:00 AM','10:00 AM','11:00 AM','02:00 PM','03:00 PM','04:00 PM'].map(t=>(<button key={t} onClick={()=>setSelectedTime(t)} className={cx('time-slot p-2 border rounded-lg',selectedTime===t&&'selected')}>{t}</button>))}</div><h4 className="text-lg font-semibold mb-4">3. Your Details</h4><div><label htmlFor="name" className="block text-sm font-medium mb-1">Name</label><input type="text" id="name" value={details.name} onChange={e=>setDetails({...details,name:e.target.value})} className="w-full p-2 border rounded-md" /></div><div className="mt-4"><label htmlFor="email" className="block text-sm font-medium mb-1">Email</label><input type="email" id="email" value={details.email} onChange={e=>setDetails({...details,email:e.target.value})} className="w-full p-2 border rounded-md" /></div></div>
+                    </div>
+                    <div className="p-6 bg-gray-50 rounded-b-2xl"><button onClick={handleConfirm} disabled={!selectedDate||!selectedTime||!details.name||!details.email} className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg cta-button disabled:bg-gray-400">Confirm Appointment</button></div>
+                </>) : (
+                    <div className="text-center p-8">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="check" className="text-green-600 w-10 h-10" /></div>
+                        <h3 className="text-2xl font-bold">Appointment Ready!</h3>
+                        <p className="text-gray-600 mt-2">Click the button below to add the event to your Google Calendar. This will send an official invitation to you and to us.</p>
+                        <a href={generateGoogleCalendarLink()} target="_blank" rel="noopener noreferrer" className="mt-6 w-full bg-blue-600 text-white font-semibold py-3 rounded-lg cta-button flex items-center justify-center gap-2">
+                            <Icon name="calendar-plus" /> Add to Google Calendar & Send Invite
+                        </a>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+// ====================================================================
+// END: UPDATED BookingModal Component
+// ====================================================================
+
+
+export default function App() {
+    const [isBookingModalOpen, setBookingModalOpen] = useState(false);
+
+    return (
+        <>
+            <GlobalStyles />
+            <Header onBookAppointment={() => setBookingModalOpen(true)} />
+            <main>
+                <Hero onBookAppointment={() => setBookingModalOpen(true)} />
+                <Services />
+                <About />
+                <SolutionGenerator />
+                <Testimonials />
+                <Contact />
+            </main>
+            <Footer />
+            <BookingModal isOpen={isBookingModalOpen} onClose={() => setBookingModalOpen(false)} />
+        </>
+    );
+}
