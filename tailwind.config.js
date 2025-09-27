@@ -4,6 +4,15 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  // Add this 'safelist' property
+  safelist: [
+    {
+      pattern: /bg-(blue|purple|green|indigo)-(100)/,
+    },
+    {
+      pattern: /text-(blue|purple|green|indigo)-(600)/,
+    },
+  ],
   theme: {
     extend: {
       fontFamily: {
